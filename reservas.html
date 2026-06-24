@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reservá tu cabaña</title>
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --card: #ffffff;
+    --accent: #2f5d50;
+    --accent-light: #e8efe9;
+    --text: #2b2b2b;
+    --muted: #6b6b6b;
+    --occupied: #e8a0a0;
+    --available: #ffffff;
+    --selected: #2f5d50;
+    --border: #ddd6c9;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px 16px 60px;
+  }
+
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  header h1 {
+    font-size: 1.6rem;
+    margin-bottom: 4px;
+    color: var(--accent);
+  }
+
+  header p {
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    border: 1px solid var(--border);
+  }
+
+  label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+    color: var(--accent);
+  }
+
+  select, input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 0.95rem;
+    margin-bottom: 16px;
+    background: var(--bg);
+  }
+
+  .cabaña-info {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: -10px;
+    margin-bottom: 16px;
+  }
+
+  .calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .calendar-header button {
+    background: var(--accent-light);
+    border: none;
+    color: var(--accent);
+    font-weight: bold;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+
+  .calendar-header span {
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    text-align: center;
+  }
+
+  .day-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    padding-bottom: 4px;
+  }
+
+  .day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--available);
+  }
+
+  .day.empty {
+    border: none;
+    cursor: default;
+  }
+
+  .day.occupied {
+    background: var(--occupied);
+    color: #7a2e2e;
+    cursor: not-allowed;
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  .day.past {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .day.selected {
+    background: var(--selected);
+    color: white;
+    font-weight: bold;
+  }
+
+  .day.in-range {
+    background: var(--accent-light);
+    border-color: var(--accent);
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 14px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+
+  .legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .legend .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+
+  .selected-dates {
+    background: var(--accent-light);
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    margin-bottom: 18px;
+  }
+
+  .btn-submit {
+    width: 100%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .btn-submit:disabled {
+    background: #aaa;
+    cursor: not-allowed;
+  }
+
+  .message {
+    text-align: center;
+    padding: 16px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    margin-top: 16px;
+    display: none;
+  }
+
+  .message.success {
+    background: #e1f0e6;
+    color: #1f5c3a;
+    display: block;
+  }
+
+  .message.error {
+    background: #fbe5e5;
+    color: #a32424;
+    display: block;
+  }
+
+  .loading {
+    text-align: center;
+    color: var(--muted);
+    padding: 20px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>Reservá tu estadía</h1>
+    <p>Elegí la cabaña y las fechas — confirmación inmediata</p>
+  </header>
+
+  <div class="card">
+    <label for="cabañaSelect">Cabaña</label>
+    <select id="cabañaSelect"></select>
+    <div class="cabaña-info" id="cabañaInfo"></div>
+
+    <div id="calendarContainer">
+      <div class="loading">Cargando disponibilidad...</div>
+    </div>
+
+    <div class="legend">
+      <span><span class="dot" style="background: var(--available); border:1px solid var(--border);"></span> Disponible</span>
+      <span><span class="dot" style="background: var(--occupied);"></span> Ocupado</span>
+      <span><span class="dot" style="background: var(--selected);"></span> Seleccionado</span>
+    </div>
+  </div>
+
+  <div class="card" id="formCard" style="display:none;">
+    <div class="selected-dates" id="selectedDatesText"></div>
+
+    <label for="nombre">Nombre completo</label>
+    <input type="text" id="nombre" placeholder="Tu nombre">
+
+    <label for="email">Email</label>
+    <input type="email" id="email" placeholder="tu@email.com">
+
+    <label for="telefono">Teléfono</label>
+    <input type="text" id="telefono" placeholder="+54 9 11 1234 5678">
+
+    <button class="btn-submit" id="submitBtn">Confirmar reserva</button>
+
+    <div class="message" id="resultMessage"></div>
+  </div>
+</div>
+
+<script>
+  // ⚠️ PEGAR ACÁ LA URL DEL WEB APP (termina en /exec)
+  const API_URL = "https://script.google.com/macros/s/AKfycbwbIMYi9AX-jpkb0p18oYCvNHCnCFEjSD0Z6VpYm8gtyvNis63FMOBPr1Co02s3awa_Pw/exec";
+
+  let cabañas = [];
+  let reservas = [];
+  let cabañaSeleccionada = null;
+  let currentMonth = new Date().getMonth();
+  let currentYear = new Date().getFullYear();
+  let fechaDesde = null;
+  let fechaHasta = null;
+
+  const meses = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  const diasSemana = ["D","L","M","M","J","V","S"];
+
+  async function init() {
+    try {
+      const [resCabañas, resReservas] = await Promise.all([
+        fetch(`${API_URL}?action=getCabañas`).then(r => r.json()),
+        fetch(`${API_URL}?action=getReservas`).then(r => r.json())
+      ]);
+
+      cabañas = resCabañas.cabañas || [];
+      reservas = resReservas.reservas || [];
+
+      poblarSelectorCabañas();
+      if (cabañas.length > 0) {
+        cabañaSeleccionada = cabañas[0].id;
+        actualizarInfoCabaña();
+      }
+      renderCalendar();
+    } catch (err) {
+      document.getElementById("calendarContainer").innerHTML =
+        '<div class="message error" style="display:block;">No se pudo cargar la disponibilidad. Intentá de nuevo más tarde.</div>';
+      console.error(err);
+    }
+  }
+
+  function poblarSelectorCabañas() {
+    const select = document.getElementById("cabañaSelect");
+    select.innerHTML = "";
+    cabañas.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.id;
+      opt.textContent = c.nombre;
+      select.appendChild(opt);
+    });
+
+    select.addEventListener("change", (e) => {
+      cabañaSeleccionada = e.target.value;
+      fechaDesde = null;
+      fechaHasta = null;
+      actualizarInfoCabaña();
+      renderCalendar();
+      ocultarFormulario();
+    });
+  }
+
+  function actualizarInfoCabaña() {
+    const c = cabañas.find(x => x.id === cabañaSeleccionada);
+    if (!c) return;
+    document.getElementById("cabañaInfo").textContent =
+      `Capacidad: ${c.capacidad} personas · $${Number(c.precioPorNoche).toLocaleString("es-AR")}/noche — ${c.descripcion || ""}`;
+  }
+
+  function getReservasDeCabaña() {
+    return reservas.filter(r => r.cabañaId === cabañaSeleccionada);
+  }
+
+  function estaOcupado(date) {
+    const reservasCabaña = getReservasDeCabaña();
+    return reservasCabaña.some(r => {
+      const desde = new Date(r.fechaDesde + "T00:00:00");
+      const hasta = new Date(r.fechaHasta + "T00:00:00");
+      return date >= desde && date < hasta;
+    });
+  }
+
+  function renderCalendar() {
+    const container = document.getElementById("calendarContainer");
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+    const startWeekday = firstDay.getDay();
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    let html = `
+      <div class="calendar-header">
+        <button onclick="cambiarMes(-1)">‹</button>
+        <span>${meses[currentMonth]} ${currentYear}</span>
+        <button onclick="cambiarMes(1)">›</button>
+      </div>
+      <div class="calendar-grid">
+    `;
+
+    diasSemana.forEach(d => html += `<div class="day-label">${d}</div>`);
+
+    for (let i = 0; i < startWeekday; i++) {
+      html += `<div class="day empty"></div>`;
+    }
+
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      const date = new Date(currentYear, currentMonth, d);
+      const ocupado = estaOcupado(date);
+      const esPasado = date < today;
+
+      let classes = "day";
+      if (ocupado) classes += " occupied";
+      else if (esPasado) classes += " past";
+
+      if (fechaDesde && date.getTime() === fechaDesde.getTime()) classes += " selected";
+      if (fechaHasta && date.getTime() === fechaHasta.getTime()) classes += " selected";
+      if (fechaDesde && fechaHasta && date > fechaDesde && date < fechaHasta) classes += " in-range";
+
+      const clickable = !ocupado && !esPasado;
+      html += `<div class="${classes}" ${clickable ? `onclick="seleccionarDia(${currentYear}, ${currentMonth}, ${d})"` : ""}>${d}</div>`;
+    }
+
+    html += `</div>`;
+    container.innerHTML = html;
+  }
+
+  function cambiarMes(delta) {
+    currentMonth += delta;
+    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+    if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+    renderCalendar();
+  }
+
+  function seleccionarDia(year, month, day) {
+    const date = new Date(year, month, day);
+
+    if (!fechaDesde || (fechaDesde && fechaHasta)) {
+      // empezar nueva selección
+      fechaDesde = date;
+      fechaHasta = null;
+    } else {
+      // ya hay fechaDesde, definir fechaHasta
+      if (date <= fechaDesde) {
+        fechaDesde = date;
+        fechaHasta = null;
+      } else {
+        // chequear que no haya días ocupados en el medio
+        let hayOcupadoEnMedio = false;
+        let cursor = new Date(fechaDesde);
+        cursor.setDate(cursor.getDate() + 1);
+        while (cursor < date) {
+          if (estaOcupado(cursor)) { hayOcupadoEnMedio = true; break; }
+          cursor.setDate(cursor.getDate() + 1);
+        }
+
+        if (hayOcupadoEnMedio) {
+          fechaDesde = date;
+          fechaHasta = null;
+        } else {
+          fechaHasta = date;
+        }
+      }
+    }
+
+    renderCalendar();
+
+    if (fechaDesde && fechaHasta) {
+      mostrarFormulario();
+    } else {
+      ocultarFormulario();
+    }
+  }
+
+  function mostrarFormulario() {
+    const formCard = document.getElementById("formCard");
+    formCard.style.display = "block";
+    const opciones = { day: "2-digit", month: "long", year: "numeric" };
+    document.getElementById("selectedDatesText").textContent =
+      `Check-in: ${fechaDesde.toLocaleDateString("es-AR", opciones)} — Check-out: ${fechaHasta.toLocaleDateString("es-AR", opciones)}`;
+    formCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function ocultarFormulario() {
+    document.getElementById("formCard").style.display = "none";
+    document.getElementById("resultMessage").style.display = "none";
+  }
+
+  function formatDateForApi(date) {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  document.getElementById("submitBtn").addEventListener("click", async () => {
+    const nombre = document.getElementById("nombre").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const telefono = document.getElementById("telefono").value.trim();
+    const msgBox = document.getElementById("resultMessage");
+    const btn = document.getElementById("submitBtn");
+
+    if (!nombre || !email || !telefono) {
+      msgBox.className = "message error";
+      msgBox.textContent = "Por favor completá todos los campos.";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Enviando...";
+
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          cabañaId: cabañaSeleccionada,
+          fechaDesde: formatDateForApi(fechaDesde),
+          fechaHasta: formatDateForApi(fechaHasta),
+          nombre, email, telefono
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        msgBox.className = "message success";
+        msgBox.textContent = `¡Reserva confirmada! Código: ${data.idReserva}. Te enviamos un mail con los detalles.`;
+        document.getElementById("nombre").value = "";
+        document.getElementById("email").value = "";
+        document.getElementById("telefono").value = "";
+
+        // refrescar reservas para bloquear esas fechas en el calendario
+        const resReservas = await fetch(`${API_URL}?action=getReservas`).then(r => r.json());
+        reservas = resReservas.reservas || [];
+        fechaDesde = null;
+        fechaHasta = null;
+        renderCalendar();
+      } else {
+        msgBox.className = "message error";
+        msgBox.textContent = data.error || "Hubo un error al procesar la reserva.";
+      }
+    } catch (err) {
+      msgBox.className = "message error";
+      msgBox.textContent = "Error de conexión. Intentá de nuevo.";
+      console.error(err);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Confirmar reserva";
+    }
+  });
+
+  init();
+</script>
+
+</body>
+</html>
