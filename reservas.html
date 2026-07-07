@@ -450,8 +450,18 @@
     const formCard = document.getElementById("formCard");
     formCard.style.display = "block";
     const opciones = { day: "2-digit", month: "long", year: "numeric" };
-    document.getElementById("selectedDatesText").textContent =
-      `Check-in: ${fechaDesde.toLocaleDateString("es-AR", opciones)} — Check-out: ${fechaHasta.toLocaleDateString("es-AR", opciones)}`;
+
+    const noches = Math.round((fechaHasta - fechaDesde) / (1000 * 60 * 60 * 24));
+    const cabana = cabañas.find(c => c.id === cabañaSeleccionada);
+    const precioPorNoche = cabana ? Number(cabana.precioPorNoche) : 0;
+    const total = noches * precioPorNoche;
+
+    document.getElementById("selectedDatesText").innerHTML =
+      `<strong>Check-in:</strong> ${fechaDesde.toLocaleDateString("es-AR", opciones)}<br>` +
+      `<strong>Check-out:</strong> ${fechaHasta.toLocaleDateString("es-AR", opciones)}<br>` +
+      `<strong>Noches:</strong> ${noches}<br>` +
+      `<strong>Total estimado:</strong> $${total.toLocaleString("es-AR")}`;
+
     formCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
